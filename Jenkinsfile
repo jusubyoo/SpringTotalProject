@@ -53,7 +53,7 @@ pipeline {
 			}
 		}
 		
-		stage('Deploy to EC2') {
+		/*stage('Deploy to EC2') {
 			steps {
 			  // Manage => SSH Agent 설치 = jenkins 다시 실행 
 			  sshagent(credentials: ['SERVER_SSH_KEY']) {
@@ -67,25 +67,25 @@ pipeline {
 				   """
 			  }
 			}
-		}
+		}*/
 		
-		/*stage('Docker Compose Down') {
+		stage('Docker Compose Down') {
 			steps {
 				echo 'docker-compose down'
 				sh '''
 				     docker-compose -f ${COMPOSE_FILE} down || true
 				   '''
 			}
-		}*/
+		}
 		
-		/*
+		
 		stage('Docker Stop And RM'){
 			steps {
 				echo 'docker stop rm'
 				sh '''
-				    docker stop ${CONTAINER_NAME} || true
-				    docker rm ${CONTAINER_NAME} || true
-				    docker pull ${IMAGE_NAME}
+				    docker stop total-app || true
+				    docker rm total-app || true
+				    docker pull ${DOCKER_IMAGE}
 				   '''
 			}
 		}
@@ -99,7 +99,7 @@ pipeline {
 				   '''
 			}
 		}
-		*/
+		
 		/*stage('Docker Run') {
 			steps {
 				echo 'Docker Run'
