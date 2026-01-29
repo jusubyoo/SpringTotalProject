@@ -2,7 +2,7 @@ pipeline {
 	agent any
 	
 	environment {
-		SERVIER_IP = "54.180.119.236"
+		SERVER_IP = "54.180.119.236"
 		SERVER_USER = "user"
 		APP_DIR = "~/app"
 		JAR_NAME = "SpringTotalProject-0.0.1-SNAPSHOT.war"
