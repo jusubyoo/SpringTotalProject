@@ -1,78 +1,128 @@
 pipeline {
-	agent any
-	
-	// 전역변수 => ${SERVER_IP}
-	environment {
-			SERVER_IP = "54.180.119.236"
-			SERVER_USER = "ubuntu"
-			APP_DIR = "~/app"
-			JAR_NAME = "SpringTotalProject-0.0.1-SNAPSHOT.war"
+    agent any
+
+    environment {
+	   DOCKER_IMAGE = "jusubyoo/total-app"
+	   DOCKER_TAG = "latest"
+	   EC2_HOST = "54.180.119.236"
+	   EC2_USER = "ubuntu"	
 	}
+	
+    stages {
+		// GIT 연결 => 주소
+        stage('Checkout') {
+            steps {
+                echo 'Git Checkout'
+                checkout scm
+            }
+        }
+        // 배포판 만들기 
+        stage('Gradlew Build') {
+			steps {
+				echo 'Gradle Build'
+				sh '''
+				    chmod +x gradlew
+				    ./gradlew clean build -x test
+				   '''
+			}
+		}
 		
-	stages {
+		stage('Docker Build') {
+			steps {
+				echo 'Docker Image Build'
+				sh '''
+				    docker build -t ${DOCKER_IMAGE}:${DOCKER_TAG} .
+				   '''
+			}
+		}
+		
+		stage('Docker Hub Login') {
+			steps {
+				echo 'DockerHub Login'
+				withCredentials([usernamePassword(
+					credentialsId: 'dockerhub-config',
+					usernameVariable: 'DOCKER_ID',
+					passwordVariable: 'DOCKER_PW'
+				)]){
+					sh '''
+					   echo "DOCKER_ID=$DOCKER_ID,DOCKER_PW=$DOCKER_PW"
+					   echo "$DOCKER_PW" | docker login -u "$DOCKER_ID" --password-stdin
+					   docker push ${DOCKER_IMAGE}:${DOCKER_TAG}
+					   '''
+				}
+			}
+		}
+		
+		stage('Deploy to EC2') {
+			steps {
+			  // Manage => SSH Agent 설치 = jenkins 다시 실행 
+			  sshagent(credentials: ['SERVER_SSH_KEY']) {
+				sh """
+				   ssh -o StrictHostKeyChecking=no ${EC2_USER}@${EC2_HOST} << EOF
+				       docker stop total-app || true
+				       docker rm total-app || true
+				       docker pull ${DOCKER_IMAGE}:${DOCKER_TAG}
+				       docker run --name total-app -it -d -p 9090:9090 ${DOCKER_IMAGE}:${DOCKER_TAG}
+				   EOF
+				   """
+			  }
+			}
+		}
+		
+		/*stage('Docker Compose Down') {
+			steps {
+				echo 'docker-compose down'
+				sh '''
+				     docker-compose -f ${COMPOSE_FILE} down || true
+				   '''
+			}
+		}*/
 		
 		/*
-		 연결 확인 = ngrok
-		 stage('Check Git Info') {
+		stage('Docker Stop And RM'){
 			steps {
+				echo 'docker stop rm'
 				sh '''
-				    echo "===Git Info==="
-				    git branch
-				    git log -1
+				    docker stop ${CONTAINER_NAME} || true
+				    docker rm ${CONTAINER_NAME} || true
+				    docker pull ${IMAGE_NAME}
+				   '''
+			}
+		}
+		
+		
+		stage('Docker Compose UP') {
+			steps {
+				echo 'docker-compose up'
+				sh '''
+				    docker-compose -f ${COMPOSE_FILE} up -d
 				   '''
 			}
 		}
 		*/
-		// 감지 = main : push (commit)
-		stage('Check Out') {
+		/*stage('Docker Run') {
 			steps {
-				 echo 'Git Checkout'
-                 checkout scm
-			}
-		}
-		
-		// gradle build => war파일을 다시 생성 
-		stage('Gradle Permission') {
-			steps {
+				echo 'Docker Run'
 				sh '''
-				    chmod +x gradlew
+				    docker stop ${CONTAINER_NAME} || true
+				    docker rm ${CONTAINER_NAME} || true
+				    
+				    docker pull ${IMAGE_NAME}
+				    
+				    docker run --name ${CONTAINER_NAME} \
+				    -it -d -p 9090:9090 \
+				    ${IMAGE_NAME}
 				   '''
 			}
+		}*/
+    }
+    
+    post {
+		success {
+			echo 'CI/CD 실행 성공'
 		}
-		
-		// build 시작 
-		stage('Gradle Build') {
-			steps {
-				sh '''
-				    ./gradlew clean build
-				   '''
-			}
+		failure {
+			echo 'CI/CD 실행 실패'
 		}
-		
-		// war파일 전송 = rsync / scp 
-		stage('Deploy = rsync') {
-			steps {
-				sshagent(credentials:['SERVER_SSH_KEY']){
-					sh """
-					    rsync -avz -e 'ssh -o StrictHostKeyChecking=no' build/libs/*.war ${SERVER_USER}@${SERVER_IP}:${APP_DIR}
-					   """
-				}
-			}
-		}
-		// 실행 명령 
-		
-		stage('Run Application') {
-			steps {
-				sshagent(credentials:['SERVER_SSH_KEY']){
-					sh """
-					    ssh -o StrictHostKeyChecking=no ${SERVER_USER}@${SERVER_IP} << 'EOF'
-					       pkill -f 'java -jar' || true
-					       nohup java -jar ${APP_DIR}/${JAR_NAME} > log.txt 2>&1 &
-EOF
-					   """ 
-				}
-			}
-		}
-		
 	}
 }
