@@ -44,7 +44,7 @@ pipeline {
 			}
 		}
 		
-		// war 파일 전송 = rsync / scp
+		// war 파일 전송 = rsync / scp 1
 		stage('Deploy = rsync') {
 			steps {
 				sshagent(credentials:['SERVER_SSH_KEY']) {
