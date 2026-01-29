@@ -42,7 +42,7 @@
             steps {
                echo 'Docker Hub Login'
                withCredentials([usernamePassword(
-                  credentialsId: 'dockorhub_config',
+                  credentialsId: 'dockerhub_config',
                   usernameVariable: 'DOCKER_ID',
                   passwordVariable: 'DOCKER_PW'
                )]){
