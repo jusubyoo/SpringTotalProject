@@ -9,7 +9,7 @@ pipeline {
 	}
 	
     stages {
-		// GIT 연결 => 주소 2
+		// GIT 연결 => 주소 3
         stage('Checkout') {
             steps {
                 echo 'Git Checkout'
