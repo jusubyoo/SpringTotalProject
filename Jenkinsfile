@@ -49,8 +49,7 @@ pipeline {
 			steps {
 				sshagent(credentials:['SERVER_SSH_KEY']) {
 					sh '''
-					   rsync -avz -e "ssh -o StrictHostKeyChecking=no" \
-					   build/libs/*.war ${SERVER_USER}@${SERVER_IP}:${APP_DIR} 
+					   rsync -avz -e 'ssh -o StrictHostKeyChecking=no' build/libs/*.war ${SERVER_USER}@${SERVER_IP}:${APP_DIR} 
 					   '''
 					   
 				}
