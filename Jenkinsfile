@@ -21,8 +21,8 @@ pipeline {
 		
 		stage('Check Out') {
 			steps {
-				git branch: 'main',
-					url: 'https://github.com/jusubyoo/SpringTotalProject.git'
+				echo 'Git Checkout'
+				checkout scm
 			}
 		}
 		
